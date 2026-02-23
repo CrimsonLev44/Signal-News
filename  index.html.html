@@ -1,0 +1,929 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SIGNAL — Private Credit Intelligence</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;900&family=IBM+Plex+Mono:wght@300;400;500&family=IBM+Plex+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0a0b;
+    --surface: #111113;
+    --surface2: #18181c;
+    --border: #222228;
+    --border2: #2e2e38;
+    --accent: #c8a96e;
+    --accent2: #e8c98e;
+    --text: #e8e8ec;
+    --muted: #6b6b7a;
+    --dim: #3a3a48;
+    --red: #e05252;
+    --green: #52c07a;
+    --blue: #5288e0;
+    --tag-bg: #1e1e26;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 13px;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* HEADER */
+  header {
+    border-bottom: 1px solid var(--border);
+    padding: 0 28px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 56px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: var(--bg);
+  }
+
+  .logo {
+    font-family: 'Playfair Display', serif;
+    font-size: 22px;
+    font-weight: 900;
+    letter-spacing: 0.12em;
+    color: var(--accent);
+  }
+
+  .logo span {
+    color: var(--muted);
+    font-weight: 400;
+    font-size: 11px;
+    letter-spacing: 0.2em;
+    margin-left: 10px;
+    font-family: 'IBM Plex Mono', monospace;
+    vertical-align: middle;
+  }
+
+  .header-right {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+  }
+
+  .live-indicator {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    color: var(--muted);
+    letter-spacing: 0.1em;
+  }
+
+  .live-dot {
+    width: 6px;
+    height: 6px;
+    background: var(--green);
+    border-radius: 50%;
+    animation: pulse 2s infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
+  }
+
+  #clock {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: 0.08em;
+  }
+
+  /* TICKER */
+  .ticker-bar {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    height: 30px;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+  }
+
+  .ticker-label {
+    background: var(--accent);
+    color: #000;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 9px;
+    font-weight: 500;
+    letter-spacing: 0.15em;
+    padding: 0 10px;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+  }
+
+  .ticker-track {
+    display: flex;
+    animation: ticker 60s linear infinite;
+    white-space: nowrap;
+    align-items: center;
+    height: 100%;
+  }
+
+  .ticker-item {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    padding: 0 24px;
+    color: var(--muted);
+    letter-spacing: 0.05em;
+    border-right: 1px solid var(--border);
+  }
+
+  .ticker-item .sym { color: var(--text); font-weight: 500; }
+  .ticker-item .up { color: var(--green); }
+  .ticker-item .down { color: var(--red); }
+
+  @keyframes ticker {
+    from { transform: translateX(0); }
+    to { transform: translateX(-50%); }
+  }
+
+  /* NAV TABS */
+  .nav-tabs {
+    display: flex;
+    border-bottom: 1px solid var(--border);
+    padding: 0 28px;
+    gap: 0;
+    background: var(--bg);
+    overflow-x: auto;
+  }
+
+  .tab {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    padding: 12px 18px;
+    color: var(--muted);
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    transition: all 0.2s;
+    white-space: nowrap;
+    user-select: none;
+  }
+
+  .tab:hover { color: var(--text); }
+  .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+  /* MAIN LAYOUT */
+  .layout {
+    display: grid;
+    grid-template-columns: 1fr 340px;
+    height: calc(100vh - 116px);
+    overflow: hidden;
+  }
+
+  .feed-panel {
+    overflow-y: auto;
+    border-right: 1px solid var(--border);
+  }
+
+  .sidebar {
+    overflow-y: auto;
+    background: var(--surface);
+  }
+
+  /* FEED */
+  .feed-header {
+    padding: 18px 24px 12px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    position: sticky;
+    top: 0;
+    background: var(--bg);
+    z-index: 10;
+  }
+
+  .feed-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--text);
+  }
+
+  .feed-count {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    color: var(--muted);
+  }
+
+  /* ARTICLE CARD */
+  .article-card {
+    padding: 18px 24px;
+    border-bottom: 1px solid var(--border);
+    cursor: pointer;
+    transition: background 0.15s;
+    animation: fadeIn 0.4s ease forwards;
+    opacity: 0;
+  }
+
+  .article-card:hover { background: var(--surface); }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(4px); }
+    to { opacity: 1; transform: none; }
+  }
+
+  .card-meta {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 7px;
+    flex-wrap: wrap;
+  }
+
+  .source-badge {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.12em;
+    padding: 2px 7px;
+    border: 1px solid var(--border2);
+    background: var(--tag-bg);
+    color: var(--accent);
+    border-radius: 2px;
+    font-weight: 500;
+  }
+
+  .category-tag {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.1em;
+    color: var(--muted);
+  }
+
+  .card-time {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 9px;
+    color: var(--dim);
+    margin-left: auto;
+  }
+
+  .card-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 15px;
+    font-weight: 700;
+    line-height: 1.4;
+    color: var(--text);
+    margin-bottom: 6px;
+    transition: color 0.15s;
+  }
+
+  .article-card:hover .card-title { color: var(--accent2); }
+
+  .card-summary {
+    font-size: 12px;
+    line-height: 1.6;
+    color: var(--muted);
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .card-link {
+    display: inline-block;
+    margin-top: 8px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.1em;
+    color: var(--blue);
+    text-decoration: none;
+  }
+
+  .card-link:hover { color: var(--accent); }
+
+  /* LOADING / ERROR */
+  .feed-status {
+    padding: 40px 24px;
+    text-align: center;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+  }
+
+  .spinner {
+    width: 20px;
+    height: 20px;
+    border: 2px solid var(--border2);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    margin: 0 auto 12px;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* SIDEBAR */
+  .sidebar-section {
+    padding: 18px 20px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .sidebar-heading {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.2em;
+    color: var(--muted);
+    margin-bottom: 14px;
+  }
+
+  /* MARKET DATA */
+  .market-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+
+  .market-item {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    padding: 10px 12px;
+    border-radius: 2px;
+  }
+
+  .market-name {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 9px;
+    color: var(--muted);
+    letter-spacing: 0.08em;
+    margin-bottom: 4px;
+  }
+
+  .market-val {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text);
+  }
+
+  .market-chg {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    margin-top: 2px;
+  }
+
+  .up { color: var(--green); }
+  .down { color: var(--red); }
+
+  /* KEY TOPICS */
+  .topic-list { display: flex; flex-direction: column; gap: 6px; }
+
+  .topic-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 10px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    cursor: pointer;
+    transition: border-color 0.15s;
+    font-size: 11px;
+    color: var(--text);
+  }
+
+  .topic-item:hover { border-color: var(--accent); }
+  .topic-item.active { border-color: var(--accent); color: var(--accent); }
+
+  .topic-count {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 9px;
+    color: var(--muted);
+  }
+
+  /* REGULATORY CALENDAR */
+  .cal-item {
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .cal-item:last-child { border-bottom: none; }
+
+  .cal-date {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 9px;
+    color: var(--accent);
+    width: 42px;
+    flex-shrink: 0;
+    letter-spacing: 0.05em;
+    padding-top: 2px;
+  }
+
+  .cal-text {
+    font-size: 11px;
+    color: var(--text);
+    line-height: 1.4;
+  }
+
+  .cal-sub {
+    font-size: 10px;
+    color: var(--muted);
+    margin-top: 2px;
+  }
+
+  /* SCROLL BARS */
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+
+  /* REFRESH BUTTON */
+  .refresh-btn {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.1em;
+    color: var(--muted);
+    background: none;
+    border: 1px solid var(--border);
+    padding: 4px 10px;
+    cursor: pointer;
+    transition: all 0.15s;
+    border-radius: 2px;
+  }
+
+  .refresh-btn:hover { color: var(--accent); border-color: var(--accent); }
+
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; }
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <span class="logo">SIGNAL</span>
+    <span class="logo" style="font-size:11px; color:var(--muted); font-family:'IBM Plex Mono',monospace; font-weight:300; letter-spacing:0.15em;">PRIVATE CREDIT · GOV RELATIONS INTELLIGENCE</span>
+  </div>
+  <div class="header-right">
+    <div class="live-indicator">
+      <div class="live-dot"></div>
+      LIVE FEED
+    </div>
+    <div id="clock"></div>
+    <button class="refresh-btn" onclick="loadAllFeeds()">↻ REFRESH</button>
+  </div>
+</header>
+
+<!-- TICKER -->
+<div class="ticker-bar">
+  <div class="ticker-label">MARKETS</div>
+  <div style="overflow:hidden; flex:1;">
+    <div class="ticker-track" id="ticker">
+      <div class="ticker-item"><span class="sym">10Y UST</span> &nbsp;<span class="up" id="t-10y">—</span></div>
+      <div class="ticker-item"><span class="sym">2Y UST</span> &nbsp;<span class="up" id="t-2y">—</span></div>
+      <div class="ticker-item"><span class="sym">SOFR</span> &nbsp;<span id="t-sofr">—</span></div>
+      <div class="ticker-item"><span class="sym">S&amp;P 500</span> &nbsp;<span id="t-spx">—</span></div>
+      <div class="ticker-item"><span class="sym">HYG</span> &nbsp;<span id="t-hyg">—</span></div>
+      <div class="ticker-item"><span class="sym">LQD</span> &nbsp;<span id="t-lqd">—</span></div>
+      <div class="ticker-item"><span class="sym">VIX</span> &nbsp;<span id="t-vix">—</span></div>
+      <div class="ticker-item"><span class="sym">EUR/USD</span> &nbsp;<span id="t-eur">—</span></div>
+      <div class="ticker-item"><span class="sym">BCOM</span> &nbsp;<span id="t-bcom">—</span></div>
+      <div class="ticker-item"><span class="sym">FED FUNDS</span> &nbsp;<span>4.25–4.50%</span></div>
+      <!-- duplicate for seamless loop -->
+      <div class="ticker-item"><span class="sym">10Y UST</span> &nbsp;<span class="up" id="t-10y2">—</span></div>
+      <div class="ticker-item"><span class="sym">2Y UST</span> &nbsp;<span class="up" id="t-2y2">—</span></div>
+      <div class="ticker-item"><span class="sym">SOFR</span> &nbsp;<span id="t-sofr2">—</span></div>
+      <div class="ticker-item"><span class="sym">S&amp;P 500</span> &nbsp;<span id="t-spx2">—</span></div>
+      <div class="ticker-item"><span class="sym">HYG</span> &nbsp;<span id="t-hyg2">—</span></div>
+      <div class="ticker-item"><span class="sym">LQD</span> &nbsp;<span id="t-lqd2">—</span></div>
+      <div class="ticker-item"><span class="sym">VIX</span> &nbsp;<span id="t-vix2">—</span></div>
+      <div class="ticker-item"><span class="sym">EUR/USD</span> &nbsp;<span id="t-eur2">—</span></div>
+      <div class="ticker-item"><span class="sym">FED FUNDS</span> &nbsp;<span>4.25–4.50%</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- NAV -->
+<div class="nav-tabs">
+  <div class="tab active" data-tab="all">ALL INTEL</div>
+  <div class="tab" data-tab="regulation">REGULATION &amp; POLICY</div>
+  <div class="tab" data-tab="markets">MARKETS &amp; CREDIT</div>
+  <div class="tab" data-tab="pe">PRIVATE EQUITY &amp; ALT ASSETS</div>
+  <div class="tab" data-tab="macro">MACRO &amp; ECONOMY</div>
+  <div class="tab" data-tab="tech">FINTECH &amp; AI</div>
+</div>
+
+<div class="layout">
+  <!-- MAIN FEED -->
+  <div class="feed-panel">
+    <div class="feed-header">
+      <div class="feed-title" id="feed-title">All Intelligence</div>
+      <div class="feed-count" id="feed-count">Loading…</div>
+    </div>
+    <div id="feed-container">
+      <div class="feed-status"><div class="spinner"></div>Fetching intelligence…</div>
+    </div>
+  </div>
+
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+
+    <!-- MARKET SNAPSHOT -->
+    <div class="sidebar-section">
+      <div class="sidebar-heading">MARKET SNAPSHOT</div>
+      <div class="market-grid">
+        <div class="market-item">
+          <div class="market-name">10Y TREASURY</div>
+          <div class="market-val" id="s-10y">—</div>
+          <div class="market-chg" id="s-10y-c">—</div>
+        </div>
+        <div class="market-item">
+          <div class="market-name">2Y TREASURY</div>
+          <div class="market-val" id="s-2y">—</div>
+          <div class="market-chg" id="s-2y-c">—</div>
+        </div>
+        <div class="market-item">
+          <div class="market-name">S&amp;P 500</div>
+          <div class="market-val" id="s-spx">—</div>
+          <div class="market-chg" id="s-spx-c">—</div>
+        </div>
+        <div class="market-item">
+          <div class="market-name">VIX</div>
+          <div class="market-val" id="s-vix">—</div>
+          <div class="market-chg" id="s-vix-c">—</div>
+        </div>
+        <div class="market-item">
+          <div class="market-name">HY SPREAD (OAS)</div>
+          <div class="market-val" id="s-hyg">—</div>
+          <div class="market-chg" id="s-hyg-c">—</div>
+        </div>
+        <div class="market-item">
+          <div class="market-name">FED FUNDS</div>
+          <div class="market-val">4.375%</div>
+          <div class="market-chg" style="color:var(--muted)">TARGET RANGE</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- KEY TOPICS FILTER -->
+    <div class="sidebar-section">
+      <div class="sidebar-heading">FILTER BY TOPIC</div>
+      <div class="topic-list">
+        <div class="topic-item active" data-keyword="">All Topics <span class="topic-count">ALL</span></div>
+        <div class="topic-item" data-keyword="SEC">SEC &amp; CFTC <span class="topic-count">REG</span></div>
+        <div class="topic-item" data-keyword="Federal Reserve">Federal Reserve <span class="topic-count">MACRO</span></div>
+        <div class="topic-item" data-keyword="private credit">Private Credit <span class="topic-count">ASSET</span></div>
+        <div class="topic-item" data-keyword="private equity">Private Equity <span class="topic-count">PE</span></div>
+        <div class="topic-item" data-keyword="debt">Debt &amp; Lending <span class="topic-count">CREDIT</span></div>
+        <div class="topic-item" data-keyword="tariff">Trade &amp; Tariffs <span class="topic-count">POLICY</span></div>
+        <div class="topic-item" data-keyword="AI">AI &amp; Fintech <span class="topic-count">TECH</span></div>
+        <div class="topic-item" data-keyword="ESG">ESG &amp; Disclosure <span class="topic-count">ESG</span></div>
+        <div class="topic-item" data-keyword="antitrust">Antitrust &amp; M&amp;A <span class="topic-count">LEGAL</span></div>
+      </div>
+    </div>
+
+    <!-- REGULATORY CALENDAR -->
+    <div class="sidebar-section">
+      <div class="sidebar-heading">REGULATORY CALENDAR</div>
+      <div class="cal-item">
+        <div class="cal-date">FEB 26</div>
+        <div>
+          <div class="cal-text">FOMC Minutes Released</div>
+          <div class="cal-sub">Jan 28–29 meeting notes</div>
+        </div>
+      </div>
+      <div class="cal-item">
+        <div class="cal-date">MAR 4</div>
+        <div>
+          <div class="cal-text">SEC Open Meeting</div>
+          <div class="cal-sub">Investment Adviser Rule Updates</div>
+        </div>
+      </div>
+      <div class="cal-item">
+        <div class="cal-date">MAR 7</div>
+        <div>
+          <div class="cal-text">Jobs Report (BLS)</div>
+          <div class="cal-sub">February nonfarm payrolls</div>
+        </div>
+      </div>
+      <div class="cal-item">
+        <div class="cal-date">MAR 12</div>
+        <div>
+          <div class="cal-text">CPI Release</div>
+          <div class="cal-sub">February inflation data</div>
+        </div>
+      </div>
+      <div class="cal-item">
+        <div class="cal-date">MAR 18–19</div>
+        <div>
+          <div class="cal-text">FOMC Meeting</div>
+          <div class="cal-sub">Rate decision + press conference</div>
+        </div>
+      </div>
+      <div class="cal-item">
+        <div class="cal-date">MAR 21</div>
+        <div>
+          <div class="cal-text">Treasury Quarterly Refunding</div>
+          <div class="cal-sub">Auction announcement</div>
+        </div>
+      </div>
+      <div class="cal-item">
+        <div class="cal-date">APR 1</div>
+        <div>
+          <div class="cal-text">Basel III Endgame Comment Period</div>
+          <div class="cal-sub">Banking capital rules — expected revision</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SOURCES -->
+    <div class="sidebar-section">
+      <div class="sidebar-heading">ACTIVE SOURCES</div>
+      <div style="display:flex; flex-wrap:wrap; gap:6px;" id="source-list">
+        <span class="source-badge">REUTERS</span>
+        <span class="source-badge">AP</span>
+        <span class="source-badge">CNBC</span>
+        <span class="source-badge">MARKETWATCH</span>
+        <span class="source-badge">AXIOS</span>
+        <span class="source-badge">POLITICO</span>
+        <span class="source-badge">THE HILL</span>
+        <span class="source-badge">GUARDIAN</span>
+        <span class="source-badge">SEEKING ALPHA</span>
+        <span class="source-badge">NAKED CAPITALISM</span>
+        <span class="source-badge">DEALBOOK</span>
+        <span class="source-badge">BROOKINGS</span>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+// CLOCK
+function updateClock() {
+  const now = new Date();
+  document.getElementById('clock').textContent =
+    now.toLocaleDateString('en-US', {weekday:'short', month:'short', day:'numeric'}) + '  ' +
+    now.toLocaleTimeString('en-US', {hour:'2-digit', minute:'2-digit', timeZoneName:'short'});
+}
+setInterval(updateClock, 1000);
+updateClock();
+
+// RSS FEEDS via allorigins proxy — curated for private credit / GovRel
+const FEEDS = [
+  // Regulation & Policy
+  { url: 'https://feeds.reuters.com/reuters/businessNews', source: 'REUTERS', category: 'regulation' },
+  { url: 'https://feeds.a.dj.com/rss/RSSMarketsMain.xml', source: 'MARKETWATCH', category: 'markets' },
+  { url: 'https://www.cnbc.com/id/100003114/device/rss/rss.html', source: 'CNBC', category: 'markets' },
+  { url: 'https://feeds.marketwatch.com/marketwatch/topstories/', source: 'MARKETWATCH', category: 'markets' },
+  { url: 'https://www.cnbc.com/id/10000664/device/rss/rss.html', source: 'CNBC FINANCE', category: 'macro' },
+  { url: 'https://feeds.a.dj.com/rss/WSJcomUSBusiness.xml', source: 'WSJ', category: 'markets' },
+  { url: 'https://rss.politico.com/economy.xml', source: 'POLITICO', category: 'regulation' },
+  { url: 'https://thehill.com/rss/syndicator/19109', source: 'THE HILL', category: 'regulation' },
+  { url: 'https://axios.com/feeds/feed.rss', source: 'AXIOS', category: 'macro' },
+  { url: 'https://feeds.feedburner.com/typepad/klul', source: 'BROOKINGS', category: 'regulation' },
+  { url: 'https://www.theguardian.com/business/rss', source: 'GUARDIAN', category: 'macro' },
+  { url: 'https://apnews.com/rss/business', source: 'AP', category: 'macro' },
+  { url: 'https://seekingalpha.com/feed.xml', source: 'SEEKING ALPHA', category: 'markets' },
+  { url: 'https://nakedcapitalism.com/feed', source: 'NAKED CAPITALISM', category: 'regulation' },
+  { url: 'https://www.ft.com/rss/home', source: 'FT', category: 'markets' },
+];
+
+// Private credit / GovRel keywords for relevance scoring
+const RELEVANT_KEYWORDS = [
+  'private credit','private equity','asset manager','alternative asset',
+  'SEC','CFTC','Federal Reserve','Treasury','OFR','FSOC','CFPB','banking regulation',
+  'credit market','leveraged loan','CLO','high yield','distressed debt','direct lending',
+  'interest rate','inflation','monetary policy','fiscal policy','debt ceiling',
+  'Blackstone','KKR','Apollo','Ares','Carlyle','Blue Owl','HPS','Oaktree',
+  'fund regulation','investment adviser','dodd-frank','Basel','capital requirement',
+  'M&A','merger','acquisition','antitrust','FTC','DOJ','CFIUS',
+  'ESG','disclosure','climate risk','financial stability',
+  'tariff','trade','Congress','Senate','bipartisan','lobbying','government',
+  'AI','fintech','digital asset','crypto','financial technology',
+  'default','bankruptcy','restructuring','workout',
+];
+
+const TAB_KEYWORDS = {
+  all: [],
+  regulation: ['SEC','CFTC','regulation','policy','Congress','Senate','Treasury','Federal Reserve','rule','legislation','antitrust','FTC','DOJ'],
+  markets: ['market','credit','bond','yield','CLO','high yield','leveraged','spread','rate','debt','loan'],
+  pe: ['private equity','private credit','asset manager','Blackstone','KKR','Apollo','Ares','Carlyle','fund','acquisition','M&A','deal'],
+  macro: ['economy','GDP','inflation','CPI','jobs','employment','fiscal','monetary','trade','tariff','recession'],
+  tech: ['AI','fintech','digital','crypto','technology','software','data','machine learning']
+};
+
+let allArticles = [];
+let activeTab = 'all';
+let activeKeyword = '';
+
+function scoreArticle(title, summary) {
+  const text = (title + ' ' + summary).toLowerCase();
+  let score = 0;
+  for (const kw of RELEVANT_KEYWORDS) {
+    if (text.includes(kw.toLowerCase())) score++;
+  }
+  return score;
+}
+
+async function fetchFeed(feed) {
+  const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(feed.url)}`;
+  const res = await fetch(proxyUrl);
+  const data = await res.json();
+  const parser = new DOMParser();
+  const xml = parser.parseFromString(data.contents, 'text/xml');
+  const items = Array.from(xml.querySelectorAll('item'));
+  return items.slice(0, 10).map(item => {
+    const title = item.querySelector('title')?.textContent?.trim() || '';
+    const link = item.querySelector('link')?.textContent?.trim() ||
+                 item.querySelector('link')?.getAttribute('href') || '#';
+    const summary = (item.querySelector('description')?.textContent || '').replace(/<[^>]+>/g, '').trim().substring(0, 200);
+    const pubDate = item.querySelector('pubDate')?.textContent || '';
+    return {
+      title, link, summary, pubDate,
+      source: feed.source,
+      category: feed.category,
+      score: scoreArticle(title, summary),
+      time: pubDate ? new Date(pubDate) : new Date(),
+    };
+  }).filter(a => a.title && a.title.length > 5);
+}
+
+function timeAgo(date) {
+  const diff = (Date.now() - date.getTime()) / 60000;
+  if (diff < 1) return 'just now';
+  if (diff < 60) return `${Math.round(diff)}m ago`;
+  if (diff < 1440) return `${Math.round(diff/60)}h ago`;
+  return `${Math.round(diff/1440)}d ago`;
+}
+
+function renderFeed(articles) {
+  const container = document.getElementById('feed-container');
+  if (!articles.length) {
+    container.innerHTML = '<div class="feed-status">No articles found for this filter.</div>';
+    return;
+  }
+  document.getElementById('feed-count').textContent = articles.length + ' STORIES';
+  let html = '';
+  articles.forEach((a, i) => {
+    html += `
+      <div class="article-card" style="animation-delay:${i * 0.04}s">
+        <div class="card-meta">
+          <span class="source-badge">${a.source}</span>
+          <span class="category-tag">${a.category.toUpperCase()}</span>
+          <span class="card-time">${timeAgo(a.time)}</span>
+        </div>
+        <div class="card-title">${a.title}</div>
+        ${a.summary ? `<div class="card-summary">${a.summary}</div>` : ''}
+        <a class="card-link" href="${a.link}" target="_blank" rel="noopener">READ FULL STORY →</a>
+      </div>`;
+  });
+  container.innerHTML = html;
+}
+
+function filterAndRender() {
+  let filtered = [...allArticles];
+
+  // Tab filter
+  const kws = TAB_KEYWORDS[activeTab];
+  if (kws && kws.length) {
+    filtered = filtered.filter(a => {
+      const text = (a.title + ' ' + a.summary).toLowerCase();
+      return kws.some(k => text.includes(k.toLowerCase()));
+    });
+  }
+
+  // Keyword filter
+  if (activeKeyword) {
+    filtered = filtered.filter(a =>
+      (a.title + ' ' + a.summary).toLowerCase().includes(activeKeyword.toLowerCase())
+    );
+  }
+
+  // Sort by time then relevance
+  filtered.sort((a, b) => {
+    if (b.score !== a.score && activeTab === 'all' && !activeKeyword) return b.score - a.score;
+    return b.time - a.time;
+  });
+
+  renderFeed(filtered.slice(0, 60));
+}
+
+async function loadAllFeeds() {
+  document.getElementById('feed-container').innerHTML =
+    '<div class="feed-status"><div class="spinner"></div>Fetching intelligence…</div>';
+  document.getElementById('feed-count').textContent = 'Loading…';
+  allArticles = [];
+
+  const results = await Promise.allSettled(FEEDS.map(f => fetchFeed(f)));
+  results.forEach(r => {
+    if (r.status === 'fulfilled') allArticles.push(...r.value);
+  });
+
+  // Deduplicate by title similarity
+  const seen = new Set();
+  allArticles = allArticles.filter(a => {
+    const key = a.title.substring(0, 40).toLowerCase();
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+
+  filterAndRender();
+}
+
+// TAB NAVIGATION
+document.querySelectorAll('.tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    tab.classList.add('active');
+    activeTab = tab.dataset.tab;
+    const titles = {
+      all: 'All Intelligence',
+      regulation: 'Regulation & Policy',
+      markets: 'Markets & Credit',
+      pe: 'Private Equity & Alt Assets',
+      macro: 'Macro & Economy',
+      tech: 'Fintech & AI'
+    };
+    document.getElementById('feed-title').textContent = titles[activeTab];
+    filterAndRender();
+  });
+});
+
+// TOPIC FILTER
+document.querySelectorAll('.topic-item').forEach(item => {
+  item.addEventListener('click', () => {
+    document.querySelectorAll('.topic-item').forEach(t => t.classList.remove('active'));
+    item.classList.add('active');
+    activeKeyword = item.dataset.keyword;
+    filterAndRender();
+  });
+});
+
+// MARKET DATA via Yahoo Finance JSON (no key needed)
+async function fetchMarketData() {
+  const symbols = [
+    { sym: '^TNX', ids: ['s-10y','t-10y','t-10y2'], label: '%' },
+    { sym: '^IRX', ids: ['s-2y','t-2y','t-2y2'], label: '%' },
+    { sym: '^GSPC', ids: ['s-spx','t-spx','t-spx2'], label: '' },
+    { sym: '^VIX', ids: ['s-vix','t-vix','t-vix2'], label: '' },
+    { sym: 'HYG', ids: ['s-hyg','t-hyg','t-hyg2'], label: '' },
+    { sym: 'LQD', ids: ['t-lqd','t-lqd2'], label: '' },
+    { sym: 'EURUSD=X', ids: ['t-eur','t-eur2'], label: '' },
+  ];
+
+  for (const s of symbols) {
+    try {
+      const r = await fetch(`https://query1.finance.yahoo.com/v8/finance/chart/${s.sym}?interval=1d&range=2d`);
+      const d = await r.json();
+      const result = d.chart?.result?.[0];
+      if (!result) continue;
+      const price = result.meta?.regularMarketPrice;
+      const prev = result.meta?.previousClose || result.meta?.chartPreviousClose;
+      const chg = price - prev;
+      const pct = (chg / prev * 100);
+      const isUp = chg >= 0;
+      const val = price < 10 ? price.toFixed(2) : price < 1000 ? price.toFixed(2) : price.toFixed(0);
+      const chgStr = `${isUp?'+':''}${chg.toFixed(2)} (${isUp?'+':''}${pct.toFixed(2)}%)`;
+
+      s.ids.forEach((id, idx) => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        el.textContent = val + s.label;
+        el.className = isUp ? 'up' : 'down';
+      });
+
+      // Sidebar change indicators
+      const cid = { '^TNX':'s-10y-c', '^IRX':'s-2y-c', '^GSPC':'s-spx-c', '^VIX':'s-vix-c', 'HYG':'s-hyg-c' };
+      const cEl = document.getElementById(cid[s.sym]);
+      if (cEl) {
+        cEl.textContent = chgStr;
+        cEl.className = 'market-chg ' + (isUp ? 'up' : 'down');
+      }
+    } catch(e) {}
+  }
+
+  // SOFR (static approximation — SOFR closely tracks fed funds)
+  ['t-sofr','t-sofr2'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) { el.textContent = '4.30%'; el.className = 'up'; }
+  });
+}
+
+// INIT
+loadAllFeeds();
+fetchMarketData();
+setInterval(fetchMarketData, 60000);
+setInterval(loadAllFeeds, 300000); // refresh every 5 min
+</script>
+</body>
+</html>
